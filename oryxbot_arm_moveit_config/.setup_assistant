@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: oryxbot_description
+    relative_path: urdf/oryxbot_arm_only.urdf
+    xacro_args: "--inorder "
+  SRDF:
+    relative_path: config/oryxbot_arm.srdf
+  CONFIG:
+    author_name: oryxbot_arm
+    author_email: xatuchenhui@163.com
+    generated_timestamp: 1545297606
