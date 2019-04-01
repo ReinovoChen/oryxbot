@@ -1,0 +1,97 @@
+#include "ros/ros.h"
+#include "image_transport/image_transport.h"
+#include "cv_bridge/cv_bridge.h"
+#include "sensor_msgs/Image.h"
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <zxing/common/Counted.h>
+#include <zxing/Binarizer.h>
+#include <zxing/MultiFormatReader.h>
+#include <zxing/Result.h>
+#include <zxing/ReaderException.h>
+#include <zxing/common/GlobalHistogramBinarizer.h>
+#include <zxing/Exception.h>
+#include <zxing/common/IllegalArgumentException.h>
+#include <zxing/BinaryBitmap.h>
+#include <zxing/DecodeHints.h>
+#include <zxing/qrcode/QRCodeReader.h>
+#include <zxing/MultiFormatReader.h>
+#include <zxing-opencv/MatSource.h>
+
+using namespace zxing;
+using namespace zxing::qrcode;
+
+
+
+#define MARK_WIDTH (210)
+
+cv::Point toCvPoint(Ref<ResultPoint> resultPoint)
+{
+    return cv::Point(resultPoint->getX(), resultPoint->getY());
+}
+
+std::vector<cv::Point2d> get_pattern(cv::Mat& grey)
+{
+    std::vector<cv::Point2d> point2d_vec;
+    try {
+        // Create luminance  source
+        Ref<LuminanceSource> source = MatSource::create(grey);
+        // Search for QR code
+        Ref<Reader> reader;
+        reader.reset(new QRCodeReader);
+        Ref<Binarizer> binarizer(new GlobalHistogramBinarizer(source));
+        Ref<BinaryBitmap> bitmap(new BinaryBitmap(binarizer));
+        Ref<Result> result(reader->decode(bitmap, DecodeHints(DecodeHints::TRYHARDER_HINT)));
+        int resultPointCount = result->getResultPoints()->size();
+        ROS_INFO("%s\n", result->getText()->getText().c_str());
+        if (resultPointCount != 3) {
+            ROS_WARN("qrcode format isn't support");
+            return point2d_vec;
+        } else {
+            for(int i=0; i < 3; i++) {
+                point2d_vec.push_back(toCvPoint(result->getResultPoints()[i]));
+            }
+        }
+        return point2d_vec;
+    } catch (const ReaderException& e) {
+        std::cerr << e.what() << " (ignoring)" << std::endl;
+    } catch (const zxing::IllegalArgumentException& e) {
+        std::cerr << e.what() << " (ignoring)" << std::endl;
+    } catch (const zxing::Exception& e) {
+        std::cerr << e.what() << " (ignoring)" << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << " (ignoring)" << std::endl;
+    }
+}
+
+
+void img_cb(const sensor_msgs::ImageConstPtr& msg)
+{
+    cv_bridge::CvImagePtr img_ptr = cv_bridge::toCvCopy(msg);
+    cv::Mat gray_img;
+    cv::cvtColor(img_ptr->image, gray_img, cv::COLOR_BGR2GRAY);
+    std::vector<cv::Point2d> p_vec = get_pattern(gray_img);
+    cv::circle(img_ptr->image, cv::Point(img_ptr->image.cols/2 + MARK_WIDTH/2, img_ptr->image.rows/2 - MARK_WIDTH/2), 10, cv::Scalar( 110, 0, 0 ), 3);
+    cv::circle(img_ptr->image, cv::Point(img_ptr->image.cols/2 + MARK_WIDTH/2, img_ptr->image.rows/2 + MARK_WIDTH/2), 10, cv::Scalar( 110, 0, 0 ), 3);
+    cv::circle(img_ptr->image, cv::Point(img_ptr->image.cols/2 - MARK_WIDTH/2, img_ptr->image.rows/2 + MARK_WIDTH/2), 10, cv::Scalar( 110, 0, 0 ), 3);
+
+    cv::imshow("sub_img", img_ptr->image);
+
+    cv::waitKey(33);
+}
+
+int main(int argc, char** argv)
+{
+    ros::init(argc, argv, "qrcode_reader");
+    ros::NodeHandle nh;
+    cv::namedWindow("sub_img");
+    cv::startWindowThread();
+    image_transport::ImageTransport it(nh);
+
+    image_transport::Subscriber sub = it.subscribe("/usb_cam/image_raw", 1, img_cb);
+
+    ros::spin();
+    cv::destroyWindow("sub_img");
+    return 0;
+}

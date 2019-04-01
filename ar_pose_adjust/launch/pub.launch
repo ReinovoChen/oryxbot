@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="ar_pose_adjust" type="getArRPYpose_node" name="getArRPYpose" output="screen"/>
+
+</launch>

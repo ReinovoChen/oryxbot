@@ -1,0 +1,7 @@
+<launch>
+    <node pkg="relative_move" type="relative_move_node" name="relative_move" output="screen">
+        <param name="p" type="double" value="5"/>
+        <param name="err" type="double" value="0.02"/>
+
+    </node>
+</launch>

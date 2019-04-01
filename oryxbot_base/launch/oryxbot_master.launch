@@ -1,0 +1,6 @@
+<launch>
+  <!-- oryxbot hardware -->  
+  <include file="$(find oryxbot_base)/launch/oryxbot_base.launch" /> 
+  <include file="$(find oryxbot_joy)/launch/oryxbot_joy.launch" /> 
+  <include file="$(find rplidar_ros)/launch/oryxbot_laser.launch" /> 
+</launch>

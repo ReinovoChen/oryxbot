@@ -1,0 +1,7 @@
+<launch>
+    <arg name="open_rviz" default="true" />
+    <group if="$(arg open_rviz)"> 
+        <node pkg="rviz" type="rviz" name="rviz" required="true"
+          args="-d $(find ar_pose_adjust)/rviz/ar_marker.rviz"/>
+    </group>
+</launch>
